@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08162a">
+<title>راهنمای دیش یاه‌ست</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#08162a;color:#f5f8ff;font-family:Tahoma,Arial,sans-serif}
+main{max-width:520px;margin:auto;padding:20px}.card{background:#102744;border:1px solid #254565;border-radius:18px;padding:16px;margin:12px 0}
+h1{text-align:center;font-size:23px;margin:8px 0} .sub{text-align:center;color:#7dd3fc}
+button{width:100%;padding:14px;border:0;border-radius:12px;background:#1688f8;color:white;font-size:16px;font-weight:bold;margin:6px 0}
+.big{font-size:28px;color:#34e68a;font-weight:bold;text-align:center}.label{color:#b8cbe0;font-size:14px}.compass{width:240px;height:240px;border:4px solid #3a91d8;border-radius:50%;margin:18px auto;position:relative;background:radial-gradient(#173b5d,#09182b)}
+.tick{position:absolute;inset:8px;text-align:center;font-size:18px;color:#fff}.needle{position:absolute;left:50%;top:18px;bottom:18px;width:4px;background:#33e28b;transform-origin:50% 50%;border-radius:8px}
+.needle:before{content:"";position:absolute;top:-2px;left:-9px;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:22px solid #33e28b}
+.center{position:absolute;width:14px;height:14px;background:white;border-radius:50%;left:calc(50% - 7px);top:calc(50% - 7px)}
+.row{display:flex;justify-content:space-between;gap:10px;margin:12px 0}.value{font-size:22px;color:#7dd3fc;font-weight:bold}
+small{color:#c3d0df;line-height:1.9;display:block}
+</style></head>
+<body><main>
+<h1>🛰️ راهنمای تنظیم دیش یاه‌ست</h1><div class="sub">Yahsat 1A • موقعیت مداری ۵۲٫۵° شرقی</div>
+<div class="card">
+<div class="label">موقعیت فعلی</div><div id="loc">برای شروع، موقعیت را دریافت کنید.</div>
+<button onclick="getLoc()">📍 دریافت موقعیت GPS</button>
+<button onclick="enableCompass()">🧭 فعال‌کردن قطب‌نما</button>
+</div>
+<div class="card">
+<div class="row"><span>جهت افقی از شمال حقیقی</span><span class="value" id="az">—</span></div>
+<div class="row"><span>ارتفاع دیش</span><span class="value" id="el">—</span></div>
+<div class="row"><span>جهت فعلی گوشی</span><span class="value" id="head">—</span></div>
+<div class="compass"><div class="tick">N<br><br><br><br><br><br><br>S</div><div id="needle" class="needle"></div><div class="center"></div></div>
+<div class="big" id="diff">—</div><div style="text-align:center">اختلاف جهت گوشی با جهت هدف</div>
+</div>
+<div class="card"><b>روش استفاده</b><small>۱) اجازه دسترسی به موقعیت مکانی را بدهید. ۲) گوشی را افقی و دور از فلز، بلندگو و آهنربا نگه دارید. ۳) گوشی را بچرخانید تا فلش سبز رو به بالا قرار بگیرد. ۴) ارتفاع دیش را جداگانه با زاویه نمایش‌داده‌شده تنظیم کنید. برای تنظیم نهایی، کیفیت سیگنال رسیور را بررسی کنید.</small>
+<small style="color:#ffd479">توجه: قطب‌نمای گوشی ممکن است خطا داشته باشد و این صفحه سیگنال ماهواره را دریافت نمی‌کند. HTTPS یا بازکردن فایل در مرورگری که اجازه حسگرها می‌دهد ممکن است برای قطب‌نما لازم باشد.</small></div>
+</main>
+<script>
+let lat=32.65,lon=51.67,heading=null,target=0;
+function calc(){
+ const r=Math.PI/180, p=lat*r, d=(52.5-lon)*r;
+ target=(Math.atan2(Math.sin(d),-Math.sin(p)*Math.cos(d))/r+360)%360;
+ const cp=Math.cos(p)*Math.cos(d);
+ const elev=Math.atan2(cp-0.1512,Math.sqrt(Math.max(0,1-cp*cp)))/r;
+ document.getElementById('az').textContent=target.toFixed(1)+'°';
+ document.getElementById('el').textContent=elev.toFixed(1)+'°';
+ draw();
+}
+function draw(){
+ if(heading===null){document.getElementById('head').textContent='نامشخص';document.getElementById('diff').textContent='قطب‌نما فعال نیست';return}
+ let diff=((target-heading+540)%360)-180;
+ document.getElementById('head').textContent=heading.toFixed(1)+'°';
+ document.getElementById('diff').textContent=(diff>0?'↻ ':'↺ ')+Math.abs(diff).toFixed(1)+'°';
+ document.getElementById('needle').style.transform='rotate('+diff+'deg)';
+}
+function getLoc(){
+ if(!navigator.geolocation){alert('مرورگر شما GPS را پشتیبانی نمی‌کند.');return}
+ navigator.geolocation.getCurrentPosition(pos=>{lat=pos.coords.latitude;lon=pos.coords.longitude;document.getElementById('loc').textContent=lat.toFixed(5)+'°, '+lon.toFixed(5)+'°';calc()},e=>alert('دسترسی به موقعیت ناموفق بود. اجازه Location را فعال کنید.'),{enableHighAccuracy:true,timeout:15000});
+}
+async function enableCompass(){
+ try{
+ if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+ let p=await DeviceOrientationEvent.requestPermission();if(p!=='granted'){alert('اجازه قطب‌نما داده نشد.');return}
+ }
+ window.addEventListener('deviceorientationabsolute',ev=>{if(ev.alpha!==null){heading=(360-ev.alpha)%360;draw()}},true);
+ window.addEventListener('deviceorientation',ev=>{if(ev.webkitCompassHeading!==undefined)heading=ev.webkitCompassHeading;else if(ev.alpha!==null)heading=(360-ev.alpha)%360;draw()},true);
+ alert('اگر جهت تغییر نکرد، مرورگر/گوشی ممکن است حسگر قطب‌نما را در این صفحه پشتیبانی نکند.');
+ }catch(e){alert('فعال‌سازی قطب‌نما ممکن نشد.')}
+}
+calc();
+</script></body></html>
